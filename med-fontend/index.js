@@ -161,6 +161,7 @@ function inherit(subType, superType) {
   Object.setPrototypeOf(subType, superType);
 }
 
+console.log('9.实现 ES6 的 class 语法');
 
 /**
  * 10.函数柯里化
@@ -185,3 +186,66 @@ const curriedAdd = curry(add);
 console.log('10.函数柯里化:', curriedAdd(5)(6)(7)(8));
 
 
+/**
+ * 11. 函数柯里化（支持占位符）
+ */
+
+const curry2 = (fn, placeholder = '_') => {
+  curry2.placeholder = placeholder;
+  if (fn.length <= 1) return fn;
+  const argsList = [];
+  const generator = (...args) => {
+    let currentPlaceholderIndex = -1;
+    args.forEach(arg => {
+      const placeholderIndex = argsList.findIndex(
+        item => item === curry2.placeholder
+      )
+      if (placeholderIndex < 0) {
+        currentPlaceholderIndex = argsList.push(arg) - 1;
+      } else if (placeholderIndex !== currentPlaceholderIndex) {
+        argsList[placeholderIndex] = arg;
+      } else {
+        argsList.push(arg);
+      }
+    })
+
+    const realArgsList = argsList.filter(arg => arg !== curry2.placeholder);
+    if (realArgsList.length === fn.length) {
+      return fn(...argsList);
+    } else if (realArgsList.length > fn.length){
+      throw new Error('超出初始函数参数最大值');
+    } else {
+      return generator;
+    }
+  }
+  return generator;
+}
+
+const add2 = (a, b, c, d) => a + b + c + d;
+const curriedAdd2 = curry2(add2);
+console.log('11.函数柯里化（支持占位符）:', curriedAdd2('_', 5)(6, '_')(7)(8));
+
+
+/**
+ * 12. 偏函数
+ */
+
+const partialFunc = (func, ...args) => {
+  let placeholderNum = 0;
+  return (...args2) => {
+    args2.forEach(arg => {
+      let index = args.findIndex(item => item === '_');
+      if (index < 0) return;
+      args[index] = arg;
+      placeholderNum++;
+    })
+    if (placeholderNum < args2.length) {
+      args2 = args2.slice(placeholderNum, args2.length)
+    }
+    return func.apply(this, [...args, ...args2]);
+  }
+}
+
+const add3 = (a, b, c, d) => a + b + c + d;
+const partialAdd3 = partialFunc(add3, '_', 2, '_');
+console.log('12.偏函数:', partialAdd3(1,4,5));
