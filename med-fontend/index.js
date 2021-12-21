@@ -340,3 +340,360 @@ const selfCall = function(context, ...args) {
   return res;
 }
 
+/**
+ * 16.简易CO模块
+ */
+
+function run(generatorFunc) {
+  const it = generatorFunc();
+  const result = it.next();
+
+  return new Promise((resolve, reject) => {
+    const next = function(result) {
+      if (result.done) {
+        resolve(result.value);
+      }
+      result.value = Promise.resolve(result.value);
+      result.value.then(res => {
+        let result = it.next(res);
+        next(result);
+      }).catch(err => {
+        reject(err);
+      });
+    }
+    next(result);
+  });
+}
+
+/**
+ * 17.函数防抖
+ */
+
+const debounce = (func, time = 17, options = {
+  leading: true,
+  context: null,
+}) => {
+  let timer;
+  const _debounce = function(...args) {
+    if (timer) {
+      clearTimeout(timer);
+    }
+    if (options.leading && !timer) {
+      timer = setTimeout(null, time);
+      func.apply(options.context, args);
+    } else {
+      timer = setTimeout(() => {
+        func.apply(options.context, args);
+        timer = null;
+      }, time);
+    }
+  }
+
+  _debounce.cancel = function() {
+    clearTimeout(timer);
+    timer = null;
+  }
+
+  return _debounce;
+}
+
+
+/**
+ * 18.函数节流
+ */
+
+const throttle = (func, time = 17, options = {
+  leading : true,
+  trailing : false,
+  context: null
+}) => {
+  let previous = new Date(0).getTime();
+  let timer;
+  const _throttle = function(...args) {
+    let now = new Date().getTime;
+
+    if(!options.leading) {
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = null;
+        func.apply(options.context, args);
+      }, time);
+    } else if(now - previous > time) {
+      func.apply(options.context, args);
+      previous = now;
+    } else if(options.trailing) {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        func.apply(options.context, args);
+      },time);
+    }
+  }
+
+  _throttle.cancel = () => {
+    previous = 0;
+    clearTimeout(timer);
+    timer = null;
+  }
+
+  return _throttle;
+}
+
+
+/**
+ * 19.图片懒加载
+ */
+
+// const imageList = [...document.querySelectorAll("img")];
+// const num = imageList.length;
+
+// const lazyLoad = (function() {
+//   let count = 0;
+//   return function() {
+//     let deleteIndexList = [];
+//     imageList.forEach((img, index) => {
+//       let rect = img.getBoundingClientRect();
+//       if (rect.top < window.innerHeight) {
+//         img.src = img.dataset.src;
+//         deleteIndexList.push(index);
+//         count++;
+//         if (count === num) {
+//           document.removeEventListener('scroll', lazyLoad);
+//         }
+//       }
+//     })
+//     imageList = imageList.filter((_, index) => !deleteIndexList.includes(index));
+//   }
+// })();
+
+
+/**
+ * 20.new关键字
+ */
+
+const isComplexDataType1 = obj => (typeof obj === 'object' || typeof obj === 'function') && obj !== null;
+const selfNew = function(fn, ...rest) {
+  let instance = Object.create(fn.prototype);
+  let res = fn.apply(instance, rest);
+  return isComplexDataType1(res) ? res : instance;
+}
+
+/**
+ * 21.实现 Object.assign
+ */
+const isComplexDataType2 = obj => (typeof obj === 'object' || typeof obj === 'function') && obj !== null;
+const selfAssign = function(target, ...source) {
+  if (target === null) {
+    throw new TypeError('Cannot');
+  }
+
+  return source.reduce((acc, cur) => {
+    isComplexDataType2(acc) || (acc = new Object(acc));
+    if (cur === null) {
+      return acc;
+    }
+    [...Object.keys(cur), ...Object.getOwnPropertySymbols(cur)].forEach((key) => {
+      acc[key] = cur[key];
+    })
+    return acc;
+  }, target);
+}
+
+
+/**
+ * 22. instanceof
+ */
+
+const selfInstanceof = function(left, right) {
+  let proto = Object.getPrototypeOf(left);
+  while(true) {
+    if(proto === null) return false;
+    if (proto === right.prototype) {
+      return true;
+    }
+    proto = Object.getPrototypeOf(proto);
+  }
+}
+
+/**
+ * 23.私有变量实现
+ */
+
+// 使用Proxy代理
+const proxy = function(obj) {
+  return new Proxy(obj, {
+    get(target, key) {
+      if (key.startsWith('_')) {
+        throw new Error('private key');
+      }
+      return Reflect.get(target, key);
+    },
+    ownKeys(target) {
+      return Reflect.ownKeys(target).filter(key => !key.startsWith('_'));
+    }
+  });
+}
+
+// 使用闭包
+const Person = (function() {
+  const _name = Symbol('name');
+  class Person {
+    constructor(name) {
+      this[_name] = name;
+    }
+
+    getName() {
+      return this[_name];
+    }
+  }
+
+  return Person;
+})();
+
+
+// 闭包2
+class Person2 {
+  constructor(name) {
+    let _name = name;
+    this.getName = function() {
+      return _name;
+    }
+  }
+}
+
+// WeakMap
+const Person3 = (function() {
+  let wp = new WeakMap();
+  
+  class Person {
+    constructor(name) {
+      wp.set(this, {
+        name
+      })
+    }
+
+    getName() {
+      return wp.get(this).name;
+    }
+  }
+
+  return Person;
+})()
+
+
+/**
+ * 24.洗牌算法
+ */
+
+// 原地
+function shuffle(arr) {
+  for(let i = 0; i < arr.length; i++) {
+    let randomIndex = i + Math.floor(Math.random() * (arr.length - i));
+    [arr[i], arr[randomIndex]] = [arr[randomIndex], arr[i]];
+  }
+  return arr;
+}
+
+console.log('24.原地洗牌算法', shuffle([1,2,3,4,5,6,7,8,9]));
+
+// 非原地
+function shuffle2(arr) {
+  let _arr = [];
+  while(arr.length) {
+    let randomIndex = Math.floor(Math.random() * arr.length);
+    _arr.push(arr.splice(randomIndex, 1)[0]);
+  }
+  return _arr;
+}
+
+console.log('24.非原地洗牌算法', shuffle2([1,2,3,4,5,6,7,8,9]));
+
+
+/**
+ * 25.单例
+ */
+
+function proxy(func) {
+  let instance;
+  let handler = {
+    constructor(target, args) {
+      if(!instance) {
+        instance = Reflect.constructor(func, args);
+      }
+      return instance;
+    }
+  }
+  return new Proxy(func, handler)
+}
+
+/**
+ * 26.promisify
+ */
+
+function promisify(asyncFunc) {
+  return function(...args) {
+    return new Promise((resolve, reject) => {
+      args.push(function callback(err, ...values) {
+        if (err) {
+          return reject(err);
+        }
+        return resolve(...values);
+      })
+      asyncFunc.call(this, ...args);
+    })
+  }
+}
+
+const fsp = new Proxy(fs, {
+  get(target, key) {
+    return promisify(target[key])
+  }
+})
+
+/**
+ * 27. 优雅的处理async/await
+ */
+
+async function errorCaptured(asyncFunc) {
+  try {
+    let res = await asyncFunc();
+    return [null, res];
+  } catch (err) {
+    return [e, null];
+  }
+}
+
+/**
+ * 28.发布订阅 EventEmitter
+ */
+
+class EventEmitter {
+  constructor() {
+    this.subs = {}
+  }
+
+  on(event, cb) {
+    (this.subs[event] || (this.subs[event] = [])).push(cb);
+  }
+
+  trigger(event, ...args) {
+    this.subs[event] && this.subs[event].forEach(cb => {
+      cb(...args)
+    })
+  }
+
+  once(event, onceCb) {
+    const cb = (...args) => {
+      onceCb(...args)
+      this.off(event, onceCb)
+    }
+    this.on(event, cb);
+  }
+
+  off(event, offCb) {
+    if(this.subs[event]) {
+      let index = this.subs[event].findIndex(cb => cb === offCb);
+      this.subs[event].splice(index, 1);
+      if(!this.subs[event].length) delete this.subs[event]
+    }
+  }
+}
