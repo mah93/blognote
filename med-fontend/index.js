@@ -249,3 +249,94 @@ const partialFunc = (func, ...args) => {
 const add3 = (a, b, c, d) => a + b + c + d;
 const partialAdd3 = partialFunc(add3, '_', 2, '_');
 console.log('12.偏函数:', partialAdd3(1,4,5));
+
+
+/**
+ * 13. 斐波那契数列及其优化
+ */
+
+let fibonacci = function (n) {
+  if (n < 1) throw new Error('参数有误');
+  if (n === 1 || n === 2) return 1;
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+const memory = function (fn) {
+  const obj = {};
+  return function (n) {
+    if (obj[n] === undefined) obj[n] = fn(n);
+    return obj[n];
+  }
+}
+
+fibonacci = memory(fibonacci);
+
+console.log('13.斐波那契数:', fibonacci(50));
+
+function fibonacci_DP(n) {
+  let res = 1;
+  if (n === 1 || n === 2) return res;
+  n = n - 2;
+  let cur = 1;
+  let pre = 1;
+  while(n) {
+    res = cur + pre;
+    pre = cur;
+    cur = res;
+    n --;
+  }
+  return res;
+}
+
+console.log('13.斐波那契数DP:', fibonacci_DP(50));
+
+
+/**
+ * 14. 实现函数 bind 方法
+ */
+
+const isComplexDataType = obj => (typeof obj === 'object' || typeof obj === 'function') && obj !== null;
+
+const selfBind = function(bindTarge, ...args1) {
+  if(typeof this !== 'function') throw new TypeError('Bind must be called on a function');
+  const originFunc = this;
+  const boundFunc = function(...args2) {
+    if (new.target) {
+      let res = originFunc.call(this, ...args1, ...args2);
+      if (isComplexDataType(res)) return res;
+      return this;
+    } else {
+      originFunc.call(bindTarge, ...args1, ...args2);
+    }
+  }
+
+  if (originFunc.prototype) {
+    boundFunc.prototype = originFunc.prototype;
+  }
+
+  const desc = Object.getOwnPropertyDescriptor(originFunc);
+  Object.defineProperties(boundFunc, {
+    length: desc.length,
+    name: Object.assign(desc.name, {
+      value: `bound ${desc.name.value}`
+    })
+  });
+
+  return boundFunc;
+}
+
+/**
+ * 15. 实现函数 call 方法
+ */
+
+const selfCall = function(context, ...args) {
+  let func = this;
+  context || (context = window);
+  if (typeof func !== 'function') throw new TypeError('Call must be called on a function');
+  let caller = new Symbol('caller');
+  context[caller] = func;
+  let res = context[caller](...args);
+  delete context[caller];
+  return res;
+}
+
